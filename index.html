@@ -10,7 +10,7 @@
   button { background:#ff0044; color:#fff; cursor:pointer; }
   button:hover { background:#ff3366; }
   img.preview { max-width:300px; margin-top:10px; border-radius:5px; }
-  #admin-section { display:none; } /* hidden by default */
+  #admin-section { display:none; }
 </style>
 </head>
 <body>
@@ -74,7 +74,10 @@ document.getElementById('enable-notif').addEventListener('click', async () => {
       await addDoc(collection(db,'subscribers'),{token, createdAt:serverTimestamp()});
       alert("Notifikasi aktif!");
     }
-  } catch(err){ console.error(err); alert("Gagal aktifkan notifikasi"); }
+  } catch(err){
+    console.error(err);
+    alert("Gagal aktifkan notifikasi. Pastikan HTTPS dan service worker terdaftar.");
+  }
 });
 
 // Admin login
