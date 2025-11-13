@@ -1,6 +1,7 @@
 importScripts('https://www.gstatic.com/firebasejs/10.1.0/firebase-app.js');
 importScripts('https://www.gstatic.com/firebasejs/10.1.0/firebase-messaging.js');
 
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyCvqbWpS1s_l72Fh8CLxO2jWFnEbSSIGSk",
   authDomain: "kasinojpwork.firebaseapp.com",
@@ -14,8 +15,9 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
+// Background notifications
 messaging.onBackgroundMessage(function(payload){
-  const notificationTitle = payload.notification.title;
-  const notificationOptions = { body: payload.notification.body };
+  const notificationTitle = payload.notification?.title || "KasinoJP";
+  const notificationOptions = { body: payload.notification?.body || "", icon: "/favicon.ico" };
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
