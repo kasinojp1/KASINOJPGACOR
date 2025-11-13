@@ -5,12 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>KasinoJP Webseat</title>
 <style>
-  body { font-family:'Poppins', sans-serif; background:#111; color:#fff; padding:20px; }
-  input, textarea, button { display:block; width:100%; margin:10px 0; padding:10px; border-radius:5px; border:none; font-size:16px; }
-  button { background:#ff0044; color:#fff; cursor:pointer; }
-  button:hover { background:#ff3366; }
-  img.preview { max-width:300px; margin-top:10px; border-radius:5px; }
-  #admin-section { display:none; }
+body { font-family:'Poppins', sans-serif; background:#111; color:#fff; padding:20px; }
+input, textarea, button { display:block; width:100%; margin:10px 0; padding:10px; border-radius:5px; border:none; font-size:16px; }
+button { background:#ff0044; color:#fff; cursor:pointer; }
+button:hover { background:#ff3366; }
+img.preview { max-width:300px; margin-top:10px; border-radius:5px; }
+#admin-section { display:none; }
 </style>
 </head>
 <body>
@@ -27,11 +27,11 @@
 <button id="login-admin">Login</button>
 
 <div id="admin-section">
-  <h2>Posting Admin</h2>
-  <input type="file" id="image" accept="image/*">
-  <textarea id="text" placeholder="Tulis pesan di sini..."></textarea>
-  <button id="post">Posting</button>
-  <img id="preview" class="preview" style="display:none;" />
+<h2>Posting Admin</h2>
+<input type="file" id="image" accept="image/*">
+<textarea id="text" placeholder="Tulis pesan di sini..."></textarea>
+<button id="post">Posting</button>
+<img id="preview" class="preview" style="display:none;" />
 </div>
 
 <script type="module">
@@ -51,7 +51,6 @@ const firebaseConfig = {
   measurementId: "G-D648ETD7YD"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const storage = getStorage(app);
@@ -71,19 +70,17 @@ if ('serviceWorker' in navigator) {
 
 // Subscribe user
 document.getElementById('enable-notif').addEventListener('click', async () => {
-  if (!swRegistration) {
-    alert("Service worker belum terdaftar. Tunggu sebentar lalu coba lagi.");
-    return;
-  }
-
+  if (!swRegistration) { alert("Service worker belum terdaftar"); return; }
   try {
+    const permission = await Notification.requestPermission();
+    if(permission !== 'granted'){ alert("Izin notifikasi ditolak!"); return; }
     const token = await getToken(messaging, { vapidKey: publicVapidKey, serviceWorkerRegistration: swRegistration });
-    if (token) {
+    if(token){
       console.log("FCM Token:", token);
       await addDoc(collection(db,'subscribers'),{token, createdAt:serverTimestamp()});
       alert("Notifikasi aktif!");
     } else {
-      alert("Tidak dapat mengambil token notifikasi. Pastikan izin notifikasi sudah diberikan.");
+      alert("Gagal mengambil token FCM.");
     }
   } catch(err){
     console.error(err);
@@ -92,15 +89,13 @@ document.getElementById('enable-notif').addEventListener('click', async () => {
 });
 
 // Admin login
-const adminPassword = "kasinojp123"; // ganti sesuai keinginan
-document.getElementById('login-admin').addEventListener('click', () => {
+const adminPassword = "kasinojp123";
+document.getElementById('login-admin').addEventListener('click', ()=>{
   const pass = document.getElementById('admin-password').value;
   if(pass === adminPassword){
-    document.getElementById('admin-section').style.display = 'block';
+    document.getElementById('admin-section').style.display='block';
     alert("Admin login berhasil!");
-  } else {
-    alert("Password salah!");
-  }
+  } else { alert("Password salah!"); }
 });
 
 // Preview gambar
@@ -122,8 +117,8 @@ document.getElementById('post').addEventListener('click', async ()=>{
     await uploadBytes(storageRef,file);
     imageUrl = await getDownloadURL(storageRef);
   }
-  await addDoc(collection(db,'posts'),{text,imageUrl,createdAt:serverTimestamp()});
-  alert("Posting berhasil! Notifikasi dikirim ke semua subscriber.");
+  const postDoc = await addDoc(collection(db,'posts'),{text,imageUrl,createdAt:serverTimestamp()});
+  alert("Posting berhasil!");
   document.getElementById('text').value='';
   imageInput.value='';
   preview.style.display='none';
