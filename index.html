@@ -1,61 +1,88 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="UTF-8" />
-    <title>Admin | KasinoJP</title>
-  </head>
-  <body>
-    <h2>🧑‍💻 Panel Admin KasinoJP</h2>
+<head>
+  <meta charset="UTF-8" />
+  <title>Halaman Admin | KasinoJP</title>
+</head>
+<body>
+  <h2>📝 Admin Postingan Baru</h2>
+  <form id="postForm">
+    <label>Judul:</label><br/>
+    <input type="text" id="title" required/><br/><br/>
+    
+    <label>Isi:</label><br/>
+    <textarea id="content" rows="4" cols="50" required></textarea><br/><br/>
+    
+    <label>URL Gambar:</label><br/>
+    <input type="text" id="imageUrl"/><br/><br/>
+    
+    <button type="submit">Kirim Postingan & Notifikasi</button>
+  </form>
 
-    <form id="postForm">
-      <input type="text" id="title" placeholder="Judul posting" required /><br><br>
-      <textarea id="content" placeholder="Isi posting..." required></textarea><br><br>
-      <input type="text" id="imageUrl" placeholder="URL gambar (opsional)" /><br><br>
-      <button type="submit">📝 Posting</button>
-    </form>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+    import { getDatabase, ref, push, set } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
 
-    <script type="module">
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
-      import { getDatabase, ref, push, set } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
+    // === Firebase Config ===
+    const firebaseConfig = {
+      apiKey: "AIzaSyCvqbWpS1s_l72Fh8CLxO2jWFnEbSSIGSk",
+      authDomain: "kasinojpwork.firebaseapp.com",
+      databaseURL: "https://kasinojpwork-default-rtdb.firebaseio.com",
+      projectId: "kasinojpwork",
+      storageBucket: "kasinojpwork.firebasestorage.app",
+      messagingSenderId: "291449017470",
+      appId: "1:291449017470:web:14d6815edcd61f3618b42f",
+      measurementId: "G-D648ETD7YD"
+    };
 
-      const firebaseConfig = {
-        apiKey: "AIzaSyCvqbWpS1s_l72Fh8CLxO2jWFnEbSSIGSk",
-        authDomain: "kasinojpwork.firebaseapp.com",
-        databaseURL: "https://kasinojpwork-default-rtdb.firebaseio.com",
-        projectId: "kasinojpwork",
-        storageBucket: "kasinojpwork.firebasestorage.app",
-        messagingSenderId: "291449017470",
-        appId: "1:291449017470:web:14d6815edcd61f3618b42f",
-        measurementId: "G-D648ETD7YD"
-      };
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
 
-      const app = initializeApp(firebaseConfig);
-      const db = getDatabase(app);
+    // Ganti dengan Server Key kamu
+    const SERVER_KEY = "SERVER_KEY_FIREBASE_KAMU";
 
-      const form = document.getElementById("postForm");
-      form.addEventListener("submit", async (e) => {
-        e.preventDefault();
+    const form = document.getElementById("postForm");
 
-        const title = document.getElementById("title").value.trim();
-        const content = document.getElementById("content").value.trim();
-        const imageUrl = document.getElementById("imageUrl").value.trim();
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      
+      const title = document.getElementById("title").value;
+      const content = document.getElementById("content").value;
+      const imageUrl = document.getElementById("imageUrl").value;
 
-        if (!title || !content) {
-          alert("Judul dan isi wajib diisi!");
-          return;
-        }
+      // Simpan post ke database
+      const newPostRef = push(ref(db, "posts"));
+      await set(newPostRef, { title, content, imageUrl });
 
-        const newPostRef = push(ref(db, "posts"));
-        await set(newPostRef, {
-          title,
-          content,
-          imageUrl,
-          timestamp: Date.now()
+      alert("Posting berhasil disimpan!");
+
+      // Kirim push notification ke topic 'all'
+      try {
+        await fetch("https://fcm.googleapis.com/fcm/send", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "key=" + SERVER_KEY
+          },
+          body: JSON.stringify({
+            to: "/topics/all",
+            notification: {
+              title: title,
+              body: content,
+              click_action: window.location.origin
+            },
+            data: {
+              imageUrl: imageUrl || ""
+            }
+          })
         });
+        alert("Notifikasi terkirim ke semua subscriber!");
+      } catch (err) {
+        console.error("Gagal kirim notifikasi:", err);
+      }
 
-        alert("✅ Postingan berhasil disimpan!");
-        form.reset();
-      });
-    </script>
-  </body>
+      form.reset();
+    });
+  </script>
+</body>
 </html>
