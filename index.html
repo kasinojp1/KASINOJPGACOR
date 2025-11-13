@@ -40,7 +40,7 @@ import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.g
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.1.0/firebase-storage.js";
 import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/10.1.0/firebase-messaging.js";
 
-// Firebase config
+// ===== Firebase config =====
 const firebaseConfig = {
   apiKey: "AIzaSyCvqbWpS1s_l72Fh8CLxO2jWFnEbSSIGSk",
   authDomain: "kasinojpwork.firebaseapp.com",
@@ -57,30 +57,41 @@ const storage = getStorage(app);
 const messaging = getMessaging(app);
 const publicVapidKey = "BHJ3F5NdQSmwmGi0_j0WBgXIkCkmAN7yAIUjGmkZPevuTHaCt6HgnIBRoDVPDD5OFFB8JCQAJPnGYc_GwfU0HZI";
 
-// Registrasi Service Worker
+// ===== Service Worker =====
+const btnSubscribe = document.getElementById('enable-notif');
+btnSubscribe.disabled = true; // disable tombol sampai SW siap
 let swRegistration = null;
+
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/firebase-messaging-sw.js')
     .then(reg => {
       console.log('Service Worker terdaftar');
       swRegistration = reg;
+      btnSubscribe.disabled = false; // aktifkan tombol setelah SW siap
     })
-    .catch(err => console.error('Gagal registrasi SW', err));
+    .catch(err => {
+      console.error('Gagal registrasi SW', err);
+      alert("Gagal registrasi Service Worker: " + err.message);
+    });
 }
 
-// Subscribe user
-document.getElementById('enable-notif').addEventListener('click', async () => {
-  if (!swRegistration) { alert("Service worker belum terdaftar"); return; }
+// ===== Subscribe Notifikasi =====
+btnSubscribe.addEventListener('click', async () => {
+  if (!swRegistration) {
+    alert("Service worker belum terdaftar. Tunggu sebentar lalu coba lagi.");
+    return;
+  }
   try {
     const permission = await Notification.requestPermission();
     if(permission !== 'granted'){ alert("Izin notifikasi ditolak!"); return; }
+
     const token = await getToken(messaging, { vapidKey: publicVapidKey, serviceWorkerRegistration: swRegistration });
     if(token){
       console.log("FCM Token:", token);
       await addDoc(collection(db,'subscribers'),{token, createdAt:serverTimestamp()});
       alert("Notifikasi aktif!");
     } else {
-      alert("Gagal mengambil token FCM.");
+      alert("Gagal mengambil token FCM. Pastikan izin notifikasi diberikan.");
     }
   } catch(err){
     console.error(err);
@@ -88,8 +99,8 @@ document.getElementById('enable-notif').addEventListener('click', async () => {
   }
 });
 
-// Admin login
-const adminPassword = "kasinojp123";
+// ===== Admin login =====
+const adminPassword = "kasinojp123"; // ganti sesuai keinginan
 document.getElementById('login-admin').addEventListener('click', ()=>{
   const pass = document.getElementById('admin-password').value;
   if(pass === adminPassword){
@@ -98,7 +109,7 @@ document.getElementById('login-admin').addEventListener('click', ()=>{
   } else { alert("Password salah!"); }
 });
 
-// Preview gambar
+// ===== Preview gambar =====
 const imageInput = document.getElementById('image');
 const preview = document.getElementById('preview');
 imageInput.addEventListener('change',()=>{
@@ -106,19 +117,22 @@ imageInput.addEventListener('change',()=>{
   if(file){ preview.src = URL.createObjectURL(file); preview.style.display='block'; }
 });
 
-// Posting admin
+// ===== Posting admin =====
 document.getElementById('post').addEventListener('click', async ()=>{
   const text = document.getElementById('text').value;
   const file = imageInput.files[0];
   if(!text){ alert("Tulis pesan dulu!"); return; }
-  let imageUrl="";
+
+  let imageUrl = "";
   if(file){
     const storageRef = ref(storage,'posts/'+Date.now()+'_'+file.name);
     await uploadBytes(storageRef,file);
     imageUrl = await getDownloadURL(storageRef);
   }
-  const postDoc = await addDoc(collection(db,'posts'),{text,imageUrl,createdAt:serverTimestamp()});
-  alert("Posting berhasil!");
+
+  await addDoc(collection(db,'posts'),{text,imageUrl,createdAt:serverTimestamp()});
+  alert("Posting berhasil! Notifikasi dikirim ke semua subscriber (jika ada Cloud Function aktif).");
+
   document.getElementById('text').value='';
   imageInput.value='';
   preview.style.display='none';
