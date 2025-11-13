@@ -16,11 +16,7 @@ const messaging = firebase.messaging();
 
 // Background notifications
 messaging.onBackgroundMessage(function(payload) {
-  console.log('[SW] Background message', payload);
-  const notificationTitle = payload.notification?.title || "KasinoJP";
-  const notificationOptions = {
-    body: payload.notification?.body || "",
-    icon: "/favicon.ico"
-  };
-  self.registration.showNotification(notificationTitle, notificationOptions);
+  const title = payload.notification?.title || "KasinoJP";
+  const options = { body: payload.notification?.body || "", icon: "/favicon.ico" };
+  self.registration.showNotification(title, options);
 });
