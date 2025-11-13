@@ -1,156 +1,61 @@
 <!DOCTYPE html>
-<html lang="id">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>KasinoJP Webseat</title>
-<style>
-body { font-family:'Poppins', sans-serif; background:#111; color:#fff; padding:20px; }
-input, textarea, button { display:block; width:100%; margin:10px 0; padding:10px; border-radius:5px; border:none; font-size:16px; }
-button { background:#ff0044; color:#fff; cursor:pointer; }
-button:hover { background:#ff3366; }
-img.preview { max-width:300px; margin-top:10px; border-radius:5px; }
-#admin-section { display:none; }
-</style>
-</head>
-<body>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Admin | KasinoJP</title>
+  </head>
+  <body>
+    <h2>🧑‍💻 Panel Admin KasinoJP</h2>
 
-<h1>KasinoJP Webseat</h1>
+    <form id="postForm">
+      <input type="text" id="title" placeholder="Judul posting" required /><br><br>
+      <textarea id="content" placeholder="Isi posting..." required></textarea><br><br>
+      <input type="text" id="imageUrl" placeholder="URL gambar (opsional)" /><br><br>
+      <button type="submit">📝 Posting</button>
+    </form>
 
-<h2>Aktifkan Notifikasi</h2>
-<button id="enable-notif">Subscribe Notifikasi</button>
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+      import { getDatabase, ref, push, set } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
 
-<hr>
+      const firebaseConfig = {
+        apiKey: "AIzaSyCvqbWpS1s_l72Fh8CLxO2jWFnEbSSIGSk",
+        authDomain: "kasinojpwork.firebaseapp.com",
+        databaseURL: "https://kasinojpwork-default-rtdb.firebaseio.com",
+        projectId: "kasinojpwork",
+        storageBucket: "kasinojpwork.firebasestorage.app",
+        messagingSenderId: "291449017470",
+        appId: "1:291449017470:web:14d6815edcd61f3618b42f",
+        measurementId: "G-D648ETD7YD"
+      };
 
-<h2>Login Admin</h2>
-<input type="password" id="admin-password" placeholder="Masukkan password admin">
-<button id="login-admin">Login</button>
+      const app = initializeApp(firebaseConfig);
+      const db = getDatabase(app);
 
-<div id="admin-section">
-<h2>Posting Admin</h2>
-<input type="file" id="image" accept="image/*">
-<textarea id="text" placeholder="Tulis pesan di sini..."></textarea>
-<button id="post">Posting & Kirim Notifikasi</button>
-<img id="preview" class="preview" style="display:none;" />
-</div>
+      const form = document.getElementById("postForm");
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.1.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.1.0/firebase-firestore.js";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.1.0/firebase-storage.js";
-import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.1.0/firebase-messaging.js";
+        const title = document.getElementById("title").value.trim();
+        const content = document.getElementById("content").value.trim();
+        const imageUrl = document.getElementById("imageUrl").value.trim();
 
-// Firebase Config
-const firebaseConfig = {
-  apiKey: "AIzaSyCvqbWpS1s_l72Fh8CLxO2jWFnEbSSIGSk",
-  authDomain: "kasinojpwork.firebaseapp.com",
-  projectId: "kasinojpwork",
-  storageBucket: "kasinojpwork.firebasestorage.app",
-  messagingSenderId: "291449017470",
-  appId: "1:291449017470:web:14d6815edcd61f3618b42f",
-  measurementId: "G-D648ETD7YD"
-};
+        if (!title || !content) {
+          alert("Judul dan isi wajib diisi!");
+          return;
+        }
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const storage = getStorage(app);
-const messaging = getMessaging(app);
-const publicVapidKey = "BHJ3F5NdQSmwmGi0_j0WBgXIkCkmAN7yAIUjGmkZPevuTHaCt6HgnIBRoDVPDD5OFFB8JCQAJPnGYc_GwfU0HZI";
-
-// ===== Service Worker =====
-const btnSubscribe = document.getElementById('enable-notif');
-btnSubscribe.disabled = true;
-let swRegistration = null;
-
-async function registerSW() {
-  if('serviceWorker' in navigator){
-    try {
-      const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-      swRegistration = reg;
-      btnSubscribe.disabled = false;
-      console.log('Service Worker terdaftar:', reg);
-    } catch(err){
-      alert("Gagal registrasi SW: "+err.message);
-    }
-  }
-}
-registerSW();
-
-// ===== Subscribe Notifikasi =====
-btnSubscribe.addEventListener('click', async ()=>{
-  if(!swRegistration){ alert("SW belum terdaftar"); return; }
-  const permission = await Notification.requestPermission();
-  if(permission!=='granted'){ alert("Izin notifikasi ditolak!"); return; }
-
-  try{
-    const token = await getToken(messaging, {vapidKey: publicVapidKey, serviceWorkerRegistration: swRegistration});
-    if(token){
-      console.log("FCM Token:", token);
-      await addDoc(collection(db,'subscribers'), {token, createdAt: serverTimestamp()});
-      alert("Notifikasi aktif!");
-    } else alert("Gagal mendapatkan token FCM");
-  } catch(err){ alert("Error: "+err.message); }
-});
-
-// ===== Admin Login =====
-const adminPassword = "kasinojp123";
-document.getElementById('login-admin').addEventListener('click', ()=>{
-  const pass = document.getElementById('admin-password').value;
-  if(pass===adminPassword){
-    document.getElementById('admin-section').style.display='block';
-    alert("Admin login berhasil!");
-  } else alert("Password salah!");
-});
-
-// ===== Preview Gambar =====
-const imageInput = document.getElementById('image');
-const preview = document.getElementById('preview');
-imageInput.addEventListener('change',()=>{
-  const file = imageInput.files[0];
-  if(file){ preview.src = URL.createObjectURL(file); preview.style.display='block'; }
-});
-
-// ===== Posting Admin + Kirim Notifikasi =====
-document.getElementById('post').addEventListener('click', async ()=>{
-  const text = document.getElementById('text').value;
-  const file = imageInput.files[0];
-  if(!text){ alert("Tulis pesan dulu!"); return; }
-
-  let imageUrl = "";
-  if(file){
-    const storageRef = ref(storage,'posts/'+Date.now()+'_'+file.name);
-    await uploadBytes(storageRef,file);
-    imageUrl = await getDownloadURL(storageRef);
-  }
-
-  await addDoc(collection(db,'posts'), {text, imageUrl, createdAt: serverTimestamp()});
-  alert("Posting berhasil!");
-
-  // ===== Kirim notifikasi ke semua subscriber =====
-  const subsSnap = await getDocs(collection(db,'subscribers'));
-  subsSnap.forEach(async sub=>{
-    const token = sub.data().token;
-    if(token){
-      try{
-        await fetch('https://fcm.googleapis.com/fcm/send', {
-          method:'POST',
-          headers:{
-            'Content-Type':'application/json',
-            'Authorization':'key=AIzaSyCvqbWpS1s_l72Fh8CLxO2jWFnEbSSIGSkY' // <-- Ganti dengan Server Key Firebase
-          },
-          body: JSON.stringify({
-            to: token,
-            notification:{ title:"KasinoJP - Post Baru", body:text.substring(0,100) }
-          })
+        const newPostRef = push(ref(db, "posts"));
+        await set(newPostRef, {
+          title,
+          content,
+          imageUrl,
+          timestamp: Date.now()
         });
-      } catch(e){ console.error("Gagal kirim notif ke token", token, e); }
-    }
-  });
 
-  document.getElementById('text').value='';
-  imageInput.value='';
-  preview.style.display='none';
-});
-</script>
-</body>
+        alert("✅ Postingan berhasil disimpan!");
+        form.reset();
+      });
+    </script>
+  </body>
 </html>
