@@ -1,4 +1,3 @@
-// firebase-messaging-sw.js
 importScripts('https://www.gstatic.com/firebasejs/10.1.0/firebase-app.js');
 importScripts('https://www.gstatic.com/firebasejs/10.1.0/firebase-messaging.js');
 
@@ -13,15 +12,15 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
-
 const messaging = firebase.messaging();
 
+// Background notifications
 messaging.onBackgroundMessage(function(payload) {
-  console.log('[firebase-messaging-sw.js] Received background message ', payload);
-  const notificationTitle = payload.notification?.title || 'KasinoJP';
+  console.log('[SW] Background message', payload);
+  const notificationTitle = payload.notification?.title || "KasinoJP";
   const notificationOptions = {
-    body: payload.notification?.body || '',
-    icon: '/favicon.ico'
+    body: payload.notification?.body || "",
+    icon: "/favicon.ico"
   };
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
